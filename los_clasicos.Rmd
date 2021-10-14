@@ -1,0 +1,83 @@
+---
+title: "FCF Clasicos - A data driven answer"
+author: "Juan C. Sanchez-Arias"
+date: "14/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Of "El Clasico", "Derby", and other tales
+
+The FIFA World Cup is approaching, well sort of. The qualifying season has re-started and I have been trying my earnest to stay up-to-date to what is happening with my gloriosa Seleccion Colombia, after all, it is my home country and the its soil still remembers that wonderful long distance bendy shot from high school (at least I like to think this is the case).
+
+While watching news videos on the subject, I stumbled upon a very interesting discussion from the folks at [F90 at ESPN Fans](https://www.youtube.com/watch?v=bEC7NtQQXi8): Is the Colombia *vs.* Ecuador a "Clasico"? After a heated debate, they anchors couldn't come up with a clear answer, not even the "data guy" from the show.
+
+Dataset source: ["International football results from 1872 to 2021" (An up-to-date dataset of over 40,000 international football results)](https://www.kaggle.com/martj42/international-football-results-from-1872-to-2017/discussion/208198).
+
+```{r set-up, include = FALSE}
+# Setting up workspace and libraries
+setwd("~/GitHub/futbolito")
+library(tidyverse)
+
+futbol <- read_csv("results.csv")
+```
+
+## Wrangling data
+
+```{r clasicos, echo=TRUE}
+
+# fcf_home <- futbol %>% filter(home_team == "Colombia") %>% group_by(away_team) %>% count(sort = TRUE)
+# 
+# fcf_away <- futbol %>% filter(away_team == "Colombia") %>% group_by(home_team) %>% count(sort = TRUE)
+
+# Coding FCF away/home status per game
+fcf_total <- futbol %>% mutate(
+  fcf_status = case_when
+  (home_team == 'Colombia' ~ 'home', 
+    away_team == 'Colombia' ~ 'away')) %>% 
+  na.omit()
+
+# Adding  rival column to ease downstream operations
+fcf_total <- fcf_total %>% mutate(
+  rival = case_when(
+    home_team == 'Colombia' ~ away_team,
+    away_team == 'Colombia' ~ home_team
+  )
+)
+
+# Let's find FCF's Clasicos!
+fcf_total %>% group_by(rival) %>% count(sort = TRUE) %>% head(9) %>% knitr::kable()
+
+fcf_total_sa <- fcf_total %>% filter(rival %in% sa)
+```
+
+So according to this dataset that includes all international games played from `r format((min(futbol$date)), format = "%Y")` to `r format((max(futbol$date)), format = "%Y")`, Colombia's Men National Team Top 5 "Clasicos" games are against Peru, Ecuador, Paraguay, and Uruguay.
+
+## Let's plot FCF results against these teams
+
+```{r plots, include=TRUE, echo=TRUE}
+
+# sa <- c("Argentina", "Bolivia", "Brazil", "Ecuador", "Paraguay", "Peru", "Uruguay", "Venezuela")
+
+fcf_total_sa %>% group_by(rival, fcf_status) %>% count(sort = TRUE) %>%
+  ggplot(aes(x = reorder(rival, desc(n)), y = n, fill = fcf_status)) + geom_col() +
+  ylab("Game count") + xlab(element_blank()) +
+  scale_fill_brewer(palette = 'Blues') + theme_bw() + theme(legend.title = element_blank())
+
+# fcf_total_sa %>% ggplot(aes(x = rival, fill = fcf_status)) + geom_bar() +
+#   ylab("Game count") + xlab(element_blank()) +
+#   scale_fill_brewer(palette = 'Blues') + theme_bw() + theme(legend.title = element_blank())
+
+fcf_total_sa <- fcf_total_sa %>% mutate(
+  goaldiff_fcf = case_when(
+    home_team == 'Colombia' ~ home_score - away_score,
+    away_team == 'Colombia' ~ away_score - home_score
+  )
+)
+
+
+```
+
