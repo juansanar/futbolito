@@ -2,7 +2,9 @@
 title: "FCF Clasicos - A data driven answer"
 author: "Juan C. Sanchez-Arias"
 date: "14/10/2021"
-output: html_document
+output: 
+  html_document:
+    theme: cosmo
 ---
 
 ```{r setup, include=FALSE}
