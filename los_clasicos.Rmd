@@ -21,6 +21,8 @@ Dataset source: ["International football results from 1872 to 2021" (An up-to-da
 # Setting up workspace and libraries
 setwd("~/GitHub/futbolito")
 library(tidyverse)
+library(cowplot)
+library(ggalt)
 
 futbol <- read_csv("results.csv")
 ```
@@ -51,33 +53,63 @@ fcf_total <- fcf_total %>% mutate(
 # Let's find FCF's Clasicos!
 fcf_total %>% group_by(rival) %>% count(sort = TRUE) %>% head(9) %>% knitr::kable()
 
+sa <- c("Argentina", "Bolivia", "Brazil", "Ecuador", "Paraguay", "Peru", "Uruguay", "Venezuela")
+
 fcf_total_sa <- fcf_total %>% filter(rival %in% sa)
 ```
 
 So according to this dataset that includes all international games played from `r format((min(futbol$date)), format = "%Y")` to `r format((max(futbol$date)), format = "%Y")`, Colombia's Men National Team Top 5 "Clasicos" games are against Peru, Ecuador, Paraguay, and Uruguay.
 
-## Let's plot FCF results against these teams
+## Let's plot FCF historical records
 
-```{r plots, include=TRUE, echo=TRUE}
-
-# sa <- c("Argentina", "Bolivia", "Brazil", "Ecuador", "Paraguay", "Peru", "Uruguay", "Venezuela")
-
-fcf_total_sa %>% group_by(rival, fcf_status) %>% count(sort = TRUE) %>%
-  ggplot(aes(x = reorder(rival, desc(n)), y = n, fill = fcf_status)) + geom_col() +
-  ylab("Game count") + xlab(element_blank()) +
-  scale_fill_brewer(palette = 'Blues') + theme_bw() + theme(legend.title = element_blank())
-
-# fcf_total_sa %>% ggplot(aes(x = rival, fill = fcf_status)) + geom_bar() +
+```{r plots, include=TRUE, echo=FALSE}
+# 
+# fcf_total_sa %>% group_by(rival, fcf_status) %>% count(sort = TRUE) %>%
+#   ggplot(aes(x = reorder(rival, desc(n)), y = n, fill = fcf_status)) + geom_col() +
 #   ylab("Game count") + xlab(element_blank()) +
 #   scale_fill_brewer(palette = 'Blues') + theme_bw() + theme(legend.title = element_blank())
+# 
 
 fcf_total_sa <- fcf_total_sa %>% mutate(
   goaldiff_fcf = case_when(
     home_team == 'Colombia' ~ home_score - away_score,
-    away_team == 'Colombia' ~ away_score - home_score
+    away_team == 'Colombia' ~ away_score - home_score),
+  win_lost = case_when(
+    goaldiff_fcf > 0 ~ "Victoria",
+    goaldiff_fcf < 0 ~ "Derrota",
+    goaldiff_fcf == 0 ~ "Empate"
+  ),
+  rival = case_when(
+    rival == "Brazil" ~ "Brasil",
+    TRUE ~ as.character(rival)
   )
 )
 
+fcf_total_sa$win_lost <- factor(fcf_total_sa$win_lost, levels = c("Victoria", "Empate", "Derrota"))
 
+# Other (better) way to plot
+fcf_total_sa %>% filter(tournament != "Bolivarian Games",
+                        tournament !="Brazil Independence Cup",
+                        tournament != "Gold Cup") %>% ggplot(aes(x = reorder(rival, -table(rival)[rival]), 
+                            fill = win_lost)) + geom_bar(alpha = 0.4) +
+  ylab("Total partidos jugados") + xlab(element_blank()) +
+  scale_fill_manual(values = c("yellow", "blue", "red")) + theme_bw() +
+  labs(title = "Partidos jugados por la Seleccion Colombiana de Futbol - FCF\nentre 1938 y 2021",
+       caption = "Competitions: Copa America, FIFA World Cup Qualification, FIFA World Cup, Friendly Games") +
+  theme(legend.title = element_blank(), text = element_text(family = "sans")) + facet_wrap(~tournament)
+```
+
+
+```{r goals, include=TRUE, echo=FALSE}
+
+fcf_total_sa %>% 
+  ggplot(
+    aes(rival, goaldiff_fcf, 
+        alpha = 0.2, colour = as.numeric(format(date, format = '%Y')),
+        size = home_score + away_score)) +
+  geom_jitter(width = 0.2) +
+  geom_abline(slope = 0, intercept = 0) +
+  theme(legend.position = "bottom") + 
+  scale_color_viridis_c() + ylim(c(-10, 10)) + facet_wrap(~ tournament)
 ```
 
