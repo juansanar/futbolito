@@ -88,7 +88,8 @@ fcf_total_sa$win_lost <- factor(fcf_total_sa$win_lost, levels = c("Win", "Draw",
 # Other (better) way to plot
 fcf_total_sa %>% filter(tournament != "Bolivarian Games",
                         tournament !="Brazil Independence Cup",
-                        tournament != "Gold Cup") %>% ggplot(aes(x = reorder(rival, -table(rival)[rival]), 
+                        tournament != "Gold Cup") %>% 
+  ggplot(aes(x = reorder(rival, -table(rival)[rival]), 
                             fill = win_lost)) + geom_bar(alpha = 0.4) +
   ylab("Total game count") + xlab(element_blank()) +
   scale_fill_manual(values = c("yellow", "blue", "red")) + theme_bw() +
@@ -98,7 +99,7 @@ fcf_total_sa %>% filter(tournament != "Bolivarian Games",
 ```
 
 
-```{r plots, include=TRUE, echo=FALSE}
+```{r plots_2, include=TRUE, echo=FALSE}
 
 fcf_total_sa %>% filter(tournament != "Bolivarian Games",
                         tournament !="Brazil Independence Cup",
@@ -142,7 +143,7 @@ plot_grid(p1, p2)
 
 ```
 
-```{r goals, include=TRUE, echo=FALSE}
+```{r goals, include=TRUE, echo=TRUE}
 
 p3 <- fcf_total_sa %>% filter(tournament != "Bolivarian Games",
                         tournament !="Brazil Independence Cup",
@@ -164,5 +165,7 @@ p3 <- fcf_total_sa %>% filter(tournament != "Bolivarian Games",
   scale_size(breaks = c(0, 2, 4, 6, 8, 10)) +
   theme_bw() +
   facet_wrap(~ tournament)
+
+p3
 ```
 
